@@ -20,7 +20,7 @@ def load_data(file_path):
     try:
         # 데이터 로드 (header=28, index_col=0 사용자가 업로드한 파일 스니펫 기반)
         # 실제 파일 구조에 따라 header, index_col, encoding을 조정해야 할 수 있습니다.
-        df = pd.read_csv(file_path, header=28, index_col=0, encoding='euc-kr')
+        df = pd.read_csv(file_path, header=28, index_col=0, encoding='cp949')
 
         # '단위: 세' 행 삭제
         df = df.drop('단위:', errors='ignore')

@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 # 데이터 파일 경로 (업로드된 파일명 사용)
-FILE_PATH = "기대수명_20251215101915"
+FILE_PATH = "기대수명_20251215101915.xlsx"
 
 @st.cache_data
 def load_data(file_path):

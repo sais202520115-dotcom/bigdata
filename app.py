@@ -8,7 +8,7 @@ st.set_page_config(page_title="타이타닉 데이터 분석기", layout="wide")
 @st.cache_data
 def load_data():
     # 데이터 로드 (파일명이 titanic3.csv인 경우)
-    df = pd.read_csv('titanic')
+    df = pd.read_csv('titanic.xls')
     return df
 
 # 데이터 불러오기

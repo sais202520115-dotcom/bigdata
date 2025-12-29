@@ -12,7 +12,7 @@ def load_data():
     file_path = 'titanic.xls'
     
     # 1. 데이터 읽기
-    df = pd.read_csv(file_path)
+    df = pd.read_excel(file_path)
     
     # 2. 데이터 클리닝: 모든 값이 비어있는 행 제거 및 필수 컬럼 형변환
     df = df.dropna(subset=['pclass', 'survived']) 

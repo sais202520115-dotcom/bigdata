@@ -7,70 +7,68 @@ st.set_page_config(page_title="타이타닉 데이터 분석기", layout="wide")
 
 @st.cache_data
 def load_data():
-    # 파일명이 다를 경우를 대비해 업로드된 실제 파일명으로 수정하세요.
-    # 여기서는 업로드하신 파일명 규칙에 맞춰 'titanic.xls - titanic3.csv'를 시도합니다.
-    file_path = 'titanic.xls'
-    
-    # 1. 데이터 읽기
-    df = pd.read_excel(file_path)
-    
-    # 2. 데이터 클리닝: 모든 값이 비어있는 행 제거 및 필수 컬럼 형변환
-    df = df.dropna(subset=['pclass', 'survived']) 
+    # 파일명은 실제 환경에 맞춰 수정하세요.
+    file_path = 'titanic.xls - titanic3.csv'
+    try:
+        df = pd.read_csv(file_path)
+    except:
+        df = pd.read_excel(file_path)
     return df
 
 try:
     df = load_data()
     
-    st.title("🚢 타이타닉 승객 데이터 분석 대시보드")
-    st.markdown("이 대시보드는 타이타닉호 승객들의 데이터를 분석하여 생존 요인을 탐색합니다.")
+    st.title("🚢 타이타닉 데이터 품질 및 분포 분석")
 
-    # 사이드바: 필터링
-    st.sidebar.header("필터 설정")
-    
-    # 데이터 타입 문제 방지를 위해 정수형 변환 후 리스트화
-    pclass_options = sorted(df["pclass"].unique().tolist())
-    pclass = st.sidebar.multiselect(
-        "객실 등급(Pclass) 선택",
-        options=pclass_options,
-        default=pclass_options
-    )
+    # --- 탭 구성 (분석 내용 분리) ---
+    tab1, tab2, tab3 = st.tabs(["📊 기본 통계 및 필터", "🔍 결측치 분석", "📈 이상치 분석"])
 
-    # 데이터 필터링 적용
-    filtered_df = df[df["pclass"].isin(pclass)]
-
-    # --- 상단 지표 (Metrics) ---
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("총 승객 수", f"{len(filtered_df)}명")
-    col2.metric("평균 운임", f"${filtered_df['fare'].mean():.2f}")
-    col3.metric("평균 연령", f"{filtered_df['age'].mean():.1f}세")
-    
-    survival_rate = (filtered_df['survived'].mean() * 100)
-    col4.metric("생존율", f"{survival_rate:.1f}%")
-
-    st.divider()
-
-    # --- 시각화 섹션 ---
-    col_left, col_right = st.columns(2)
-
-    with col_left:
-        st.subheader("성별에 따른 생존자 수")
-        # survived를 문자열로 변환하여 범례를 보기 좋게 만듭니다.
-        plot_df = filtered_df.copy()
+    with tab1:
+        st.header("기본 분석")
+        # 필터링 및 지표 (기존 코드 유지)
+        pclass_options = sorted(df["pclass"].dropna().unique().tolist())
+        pclass = st.multiselect("객실 등급 선택", options=pclass_options, default=pclass_options)
+        
+        filtered_df = df[df["pclass"].isin(pclass)].copy()
+        
+        col1, col2, col3 = st.columns(3)
+        col1.metric("총 승객 수", len(filtered_df))
+        col2.metric("평균 운임", f"${filtered_df['fare'].mean():.2f}")
+        col3.metric("평균 연령", f"{filtered_df['age'].mean():.1f}세")
+        
+        st.subheader("성별/생존 데이터 시각화")
+        plot_df = filtered_df.dropna(subset=['survived']).copy()
         plot_df['survived'] = plot_df['survived'].map({1.0: '생존', 0.0: '사망'})
-        fig_sex = px.histogram(plot_df, x="sex", color="survived",
-                               barmode="group",
-                               color_discrete_map={'생존': "#636EFA", '사망': "#EF553B"})
-        st.plotly_chart(fig_sex, use_container_width=True)
+        fig = px.histogram(plot_df, x="sex", color="survived", barmode="group")
+        st.plotly_chart(fig, use_container_width=True)
 
-    with col_right:
-        st.subheader("객실 등급별 운임 분포")
-        fig_fare = px.box(filtered_df, x="pclass", y="fare", color="pclass")
-        st.plotly_chart(fig_fare, use_container_width=True)
+    with tab2:
+        st.header("데이터 결측치(Missing Values) 현황")
+        # 결측치 계산
+        null_info = df.isnull().sum().reset_index()
+        null_info.columns = ['Column', 'Missing_Count']
+        null_info = null_info[null_info['Missing_Count'] > 0].sort_values(by='Missing_Count', ascending=False)
 
-    # --- 데이터 상세 보기 ---
-    st.subheader("데이터 상세 보기")
-    if st.checkbox("원본 데이터 표시"):
-        st.dataframe(filtered_df)
+        if not null_info.empty:
+            c1, c2 = st.columns([1, 2])
+            with c1:
+                st.write("컬럼별 결측치 개수")
+                st.table(null_info)
+            with c2:
+                fig_null = px.bar(null_info, x='Column', y='Missing_Count', title="결측치 발생 컬럼")
+                st.plotly_chart(fig_null, use_container_width=True)
+        else:
+            st.success("결측치가 없는 깨끗한 데이터입니다!")
 
-except Exception as e:
-    st.error(f"오류가 발생했습니다: {e}")
+    with tab3:
+        st.header("수치형 데이터 이상치(Outliers) 감지")
+        st.write("박스플롯의 수염(Whiskers) 범위를 벗어나는 점들이 이상치입니다.")
+        
+        # 이상치를 확인할 수치형 컬럼 선택
+        target_col = st.selectbox("분석할 컬럼 선택", ["fare", "age"])
+        
+        # Plotly Boxplot은 이상치를 자동으로 점으로 표시해줍니다.
+        fig_outlier = px.box(filtered_df, y=target_col, points="all", 
+                             title=f"{target_col} 컬럼의 분포 및 이상치",
+                             color_discrete_sequence=['#AB63FA'])
+        st.plotly_chart(fig_out

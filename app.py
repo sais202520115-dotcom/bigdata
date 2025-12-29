@@ -8,7 +8,7 @@ st.set_page_config(page_title="타이타닉 데이터 분석기", layout="wide")
 @st.cache_data
 def load_data():
     # 파일명은 실제 환경에 맞춰 수정하세요.
-    file_path = 'titanic.xls - titanic3.csv'
+    file_path = 'titanic.xls'
     try:
         df = pd.read_csv(file_path)
     except:
@@ -71,4 +71,17 @@ try:
         fig_outlier = px.box(filtered_df, y=target_col, points="all", 
                              title=f"{target_col} 컬럼의 분포 및 이상치",
                              color_discrete_sequence=['#AB63FA'])
-        st.plotly_chart(fig_out
+        st.plotly_chart(fig_outlier, use_container_width=True)
+        
+        # IQR 방식으로 이상치 개수 계산하여 보여주기
+        Q1 = filtered_df[target_col].quantile(0.25)
+        Q3 = filtered_df[target_col].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        
+        outliers = filtered_df[(filtered_df[target_col] < lower_bound) | (filtered_df[target_col] > upper_bound)]
+        st.warning(f"**{target_col}**의 이상치 개수: {len(outliers)}개 (통계적 IQR 기준)")
+
+except Exception as e:
+    st.error(f"오류 발생: {e}")

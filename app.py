@@ -9,7 +9,7 @@ st.set_page_config(page_title="타이타닉 데이터 분석기", layout="wide")
 def load_data():
     # 파일명이 다를 경우를 대비해 업로드된 실제 파일명으로 수정하세요.
     # 여기서는 업로드하신 파일명 규칙에 맞춰 'titanic.xls - titanic3.csv'를 시도합니다.
-    file_path = 'titanic.xls - titanic3.csv'
+    file_path = 'titanic.xls'
     
     # 1. 데이터 읽기
     df = pd.read_csv(file_path)

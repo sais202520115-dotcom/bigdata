@@ -74,4 +74,3 @@ try:
 
 except Exception as e:
     st.error(f"오류가 발생했습니다: {e}")
-    st.info("팁: 데이터 파일 이름이 'titanic.xls - titanic3.csv'로 폴더 내에 있는지 확인하세요.")

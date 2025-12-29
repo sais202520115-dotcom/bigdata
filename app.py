@@ -7,11 +7,17 @@ st.set_page_config(page_title="타이타닉 데이터 분석기", layout="wide")
 
 @st.cache_data
 def load_data():
-    # 데이터 로드 (파일명이 titanic3.csv인 경우)
-    df = pd.read_csv('titanic3.csv')
+    # 파일명이 다를 경우를 대비해 업로드된 실제 파일명으로 수정하세요.
+    # 여기서는 업로드하신 파일명 규칙에 맞춰 'titanic.xls - titanic3.csv'를 시도합니다.
+    file_path = 'titanic.xls - titanic3.csv'
+    
+    # 1. 데이터 읽기
+    df = pd.read_csv(file_path)
+    
+    # 2. 데이터 클리닝: 모든 값이 비어있는 행 제거 및 필수 컬럼 형변환
+    df = df.dropna(subset=['pclass', 'survived']) 
     return df
 
-# 데이터 불러오기
 try:
     df = load_data()
     
@@ -20,21 +26,24 @@ try:
 
     # 사이드바: 필터링
     st.sidebar.header("필터 설정")
+    
+    # 데이터 타입 문제 방지를 위해 정수형 변환 후 리스트화
+    pclass_options = sorted(df["pclass"].unique().tolist())
     pclass = st.sidebar.multiselect(
         "객실 등급(Pclass) 선택",
-        options=df["pclass"].unique().tolist(),
-        default=df["pclass"].unique().tolist()
+        options=pclass_options,
+        default=pclass_options
     )
 
     # 데이터 필터링 적용
-    mask = df["pclass"].isin(pclass)
-    filtered_df = df[mask]
+    filtered_df = df[df["pclass"].isin(pclass)]
 
     # --- 상단 지표 (Metrics) ---
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("총 승객 수", len(filtered_df))
+    col1.metric("총 승객 수", f"{len(filtered_df)}명")
     col2.metric("평균 운임", f"${filtered_df['fare'].mean():.2f}")
     col3.metric("평균 연령", f"{filtered_df['age'].mean():.1f}세")
+    
     survival_rate = (filtered_df['survived'].mean() * 100)
     col4.metric("생존율", f"{survival_rate:.1f}%")
 
@@ -45,15 +54,17 @@ try:
 
     with col_left:
         st.subheader("성별에 따른 생존자 수")
-        fig_sex = px.histogram(filtered_df, x="sex", color="survived", 
-                               barmode="group", color_discrete_map={0: "#EF553B", 1: "#636EFA"},
-                               labels={"survived": "생존 여부 (1=생존)"})
+        # survived를 문자열로 변환하여 범례를 보기 좋게 만듭니다.
+        plot_df = filtered_df.copy()
+        plot_df['survived'] = plot_df['survived'].map({1.0: '생존', 0.0: '사망'})
+        fig_sex = px.histogram(plot_df, x="sex", color="survived",
+                               barmode="group",
+                               color_discrete_map={'생존': "#636EFA", '사망': "#EF553B"})
         st.plotly_chart(fig_sex, use_container_width=True)
 
     with col_right:
         st.subheader("객실 등급별 운임 분포")
-        fig_fare = px.box(filtered_df, x="pclass", y="fare", color="pclass",
-                          title="Pclass vs Fare")
+        fig_fare = px.box(filtered_df, x="pclass", y="fare", color="pclass")
         st.plotly_chart(fig_fare, use_container_width=True)
 
     # --- 데이터 상세 보기 ---
@@ -61,5 +72,6 @@ try:
     if st.checkbox("원본 데이터 표시"):
         st.dataframe(filtered_df)
 
-except FileNotFoundError:
-    st.error("데이터 파일(titanic3.csv)을 찾을 수 없습니다. 파일 이름을 확인해 주세요.")
+except Exception as e:
+    st.error(f"오류가 발생했습니다: {e}")
+    st.info("팁: 데이터 파일 이름이 'titanic.xls - titanic3.csv'로 폴더 내에 있는지 확인하세요.")
